@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ovládač pásu</title>
+<style>
+  :root{
+    --bg:#0f1412; --panel:#18201c; --panel2:#1f2923; --line:#2c3a32;
+    --text:#eef3ee; --muted:#8fa196; --accent:#7ddc8a; --accent-d:#1e3a27;
+    --warn:#f2b84b; --danger:#e5484d;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto;padding:14px 14px 150px}
+  h1{font-size:20px;font-weight:650;letter-spacing:-.2px}
+  h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .pill{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .pill.on{background:var(--accent-d);color:var(--accent);border-color:#2f5a3b}
+  .banner{border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:12px;background:#3a2d12;border:1px solid #6b5217;color:var(--warn)}
+  .banner.danger{background:#3b1517;border-color:#7a2a2e;color:#ff9a9d}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .wk.card{padding:10px 14px}
+  .muted{color:var(--muted);font-size:13px}
+  button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:12px;padding:12px 16px;cursor:pointer;touch-action:manipulation}
+  button:active{transform:scale(.98)}
+  button.primary{background:var(--accent);color:#08210f;border-color:var(--accent)}
+  button.ghost{background:transparent}
+  button.wide{width:100%;font-size:19px;padding:17px}
+  button:disabled{opacity:.35}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row>*{flex:1}
+
+  /* domov */
+  .wk{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .wk b{display:block;font-size:17px}
+  .speed{text-align:center;padding:14px 10px 10px;margin-top:10px}
+  .speed .v{font:700 72px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .speed .u{color:var(--muted);font-size:15px}
+  .speed .t{margin-top:6px;color:var(--muted);font-size:14px}
+  .speed .t b{color:var(--accent);font-family:var(--mono)}
+  .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .mini .card{text-align:center;padding:10px 6px}
+  .mini .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .mini .v{font:600 22px/1.3 var(--mono);font-variant-numeric:tabular-nums}
+  .now{margin-top:8px}
+  .now .n{font-size:17px;font-weight:650}
+  .bar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  .cd{font:700 96px/1 var(--mono);text-align:center;color:var(--warn);padding:10px 0 4px}
+  #quick button{padding:14px 4px;font-size:17px;font-variant-numeric:tabular-nums}
+  #quick button.on{background:var(--accent-d);border-color:var(--accent);color:var(--accent)}
+  .q3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .q3 input{width:100%;margin:0;text-align:center;font-size:18px}
+  #tempo{display:none}
+  #tempo.show{display:flex}
+
+  /* tréningy */
+  .wcard{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .wcard.sel{border-color:var(--accent)}
+  .wcard b{display:block}
+  .wcard button{flex:none;padding:10px 14px}
+  details.card{margin-top:12px}
+  summary{cursor:pointer;font-weight:600}
+  textarea,input{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:6px}
+  textarea{font-family:var(--mono);font-size:13px;min-height:170px;line-height:1.45}
+  .err{color:#ff9a9d;font-size:13px;margin-top:6px}
+
+  /* nastavenia */
+  .set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .set:last-of-type{border:none}
+  .set label{flex:1}
+  .set label small{display:block;color:var(--muted);font-size:12px}
+  .set input{width:92px;margin:0;text-align:right}
+  #log{font:11px/1.5 var(--mono);color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;max-height:200px;overflow:auto;margin-top:8px;white-space:pre-wrap}
+
+  /* spodné lišty */
+  #stopbar{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));padding:8px 14px;display:none}
+  #stopbar.show{display:block}
+  #stopbar button{width:100%;max-width:532px;display:block;margin:0 auto;background:var(--danger);border-color:var(--danger);color:#fff;font-size:18px;padding:15px;letter-spacing:.04em}
+  nav{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;border:none;border-radius:0;background:transparent;color:var(--muted);font-size:12px;padding:10px 4px 9px;font-weight:600}
+  nav button span{display:block;font-size:20px;line-height:1.2}
+  nav button.on{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Domov</h1>
+  <span id="conn" class="pill">Nepripojený</span>
+</header>
+
+<div id="alert" class="banner danger" hidden></div>
+
+<!-- ============ DOMOV ============ -->
+<section id="p-home">
+  <div id="support" class="banner" hidden></div>
+
+  <div class="card wk">
+    <div><span class="muted">Vybraný tréning</span><b id="hWk">Žiadny</b><span class="muted" id="hWkInfo"></span></div>
+    <button id="bChange" class="ghost">Zmeniť</button>
+  </div>
+
+  <div id="cdBox" class="card now" hidden>
+    <div class="muted" style="text-align:center">Pás sa spustí o…</div>
+    <div class="cd" id="cdNum">10</div>
+    <div class="muted" style="text-align:center">Postavte sa na bočné lišty a uchopte madlá.</div>
+  </div>
+
+  <div class="card speed">
+    <div class="v" id="vSpeed">–</div>
+    <div class="t">km/h · cieľ <b id="vTarget">–</b> km/h</div>
+  </div>
+
+  <div class="mini">
+    <div class="card"><div class="l">Sklon</div><div class="v"><span id="vIncl">–</span>%</div></div>
+    <div class="card"><div class="l">Tep</div><div class="v" id="vHr">–</div></div>
+    <div class="card"><div class="l">Dĺžka</div><div class="v"><span id="vDist">0.00</span> km</div></div>
+  </div>
+
+  <div class="card now">
+    <div class="n" id="nowName">Pripoj pás a vyber tréning</div>
+    <div class="muted" id="nowNext"></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="row" style="justify-content:space-between;margin-top:8px">
+      <span class="muted">Interval: <b id="vBlockT" style="color:var(--text)">–</b></span>
+      <span class="muted" style="text-align:right">Celkom: <b id="vTotal" style="color:var(--text)">0:00</b></span>
+    </div>
+  </div>
+
+  <div class="row">
+    <button id="bMain" class="primary wide">Pripojiť pás</button>
+  </div>
+  <div class="row" id="quick">
+    <button class="ghost" data-q="0"></button>
+    <button class="ghost" data-q="1"></button>
+    <button class="ghost" data-q="2"></button>
+  </div>
+  <div class="row" id="tempo">
+    <button id="bMinus" class="ghost">− 0,5 km/h</button>
+    <button id="bPlus" class="ghost">+ 0,5 km/h</button>
+  </div>
+</section>
+
+<!-- ============ TRÉNINGY ============ -->
+<section id="p-work" hidden>
+  <div id="wlist"></div>
+
+  <details class="card">
+    <summary>+ Vlastný tréning</summary>
+    <input id="nName" placeholder="Názov tréningu">
+    <textarea id="nPlan" spellcheck="false" placeholder="Jeden riadok = jeden blok, napr.:
+Rozcvička 10 min 8 km/h
+Beh 3 min 12 km/h sklon 1
+Oddych 2 min 8 km/h"></textarea>
+    <div class="muted" style="margin-top:6px">Tvar riadku: <i>názov trvanie rýchlosť</i> (min alebo s). Sklon je voliteľný.</div>
+    <div id="nErr" class="err"></div>
+    <div class="row"><button id="bNew" class="primary">Uložiť tréning</button></div>
+  </details>
+</section>
+
+<!-- ============ NASTAVENIA ============ -->
+<section id="p-set" hidden>
+  <div class="card">
+    <div class="set"><label>Maximálna rýchlosť<small>nad toto pás nikdy nepôjde (km/h)</small></label><input id="sCap" type="number" step="0.1" inputmode="decimal"></div>
+    <div class="set"><label>Plynulý prechod<small>zmena rýchlosti za sekundu (0 = skokovo)</small></label><input id="sRamp" type="number" step="0.1" min="0" inputmode="decimal"></div>
+    <div class="set"><label>Odpočet pred štartom<small>sekundy</small></label><input id="sCd" type="number" step="1" min="3" inputmode="numeric"></div>
+    <div class="set"><label>Predvolený sklon<small>ak ho tréning neuvádza (%)</small></label><input id="sIncl" type="number" step="0.5" inputmode="decimal"></div>
+  </div>
+
+  <h2>Rýchle tlačidlá</h2>
+  <div class="card">
+    <div class="muted">Rýchlosť (km/h) troch tlačidiel na úvodnej stránke. Fungujú počas tréningu aj pri ručnom behu na páse.</div>
+    <div class="q3">
+      <input id="q0" type="number" step="0.1" min="0" inputmode="decimal">
+      <input id="q1" type="number" step="0.1" min="0" inputmode="decimal">
+      <input id="q2" type="number" step="0.1" min="0" inputmode="decimal">
+    </div>
+    <div class="muted" style="margin-top:8px">Hodnota nad maximálnou rýchlosťou sa automaticky obmedzí.</div>
+  </div>
+
+  <h2>Pás</h2>
+  <div class="row" style="margin-top:0">
+    <button id="bDisc" class="ghost">Odpojiť pás</button>
+    <button id="bDemo" class="ghost">Demo (bez pásu)</button>
+  </div>
+
+  <h2>Pre pokročilých</h2>
+  <details class="card"><summary>Technický log</summary><div id="log"></div></details>
+</section>
+
+<div id="stopbar"><button id="bStop">■ STOP — zastaviť pás</button></div>
+
+<nav>
+  <button data-p="home" class="on"><span>🏃</span>Domov</button>
+  <button data-p="work"><span>📋</span>Tréningy</button>
+  <button data-p="set"><span>⚙️</span>Nastavenia</button>
+</nav>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function log(m){ const el=$('log'); el.textContent += new Date().toLocaleTimeString('sk-SK') + '  ' + m + '\n'; el.scrollTop = el.scrollHeight; }
+
+/* ---------- úložisko ---------- */
+const KEY='ovladac-pasu.v2';
+let store = {workouts:{}, settings:{cap:16,ramp:1.5,cd:10,incl:1,q:[6,9,12]}, selected:null};
+try{ const o=JSON.parse(localStorage.getItem(KEY)); if(o) store=Object.assign(store,o); store.settings=Object.assign({cap:16,ramp:1.5,cd:10,incl:1,q:[6,9,12]},store.settings); if(!Array.isArray(store.settings.q)||store.settings.q.length!==3) store.settings.q=[6,9,12]; }catch(e){}
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} }
+
+/* ---------- predvolené tréningy ---------- */
+const PRESETS = {
+  'Garmin Strides (8× 40 s)': `Rozcvička 15 min 9.4 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 6 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Beh 40 s 13.8 km/h
+Oddych 3 min 8 km/h
+Cooldown 10 min 9.4 km/h`,
+  'Test pásu (1 minúta)': `Chôdza 20 s 4 km/h
+Pomalý klus 20 s 6 km/h
+Chôdza 20 s 4 km/h`
+};
+const allWorkouts = () => Object.assign({}, PRESETS, store.workouts);
+
+/* ---------- parser ---------- */
+function parsePlan(text, defIncl){
+  const blocks=[], errors=[];
+  text.split('\n').forEach((raw,i)=>{
+    const line = raw.trim().replace(/,/g,'.');
+    if(!line || line.startsWith('#')) return;
+    const m = line.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*(min|sek|sec|s)\b\.?\s*(?:@|-|:)?\s*(\d+(?:\.\d+)?)\s*km\/?h/i);
+    if(!m){ errors.push('Riadok '+(i+1)+': nerozumiem „'+raw.trim()+'"'); return; }
+    const dur = parseFloat(m[2]) * (m[3].toLowerCase()==='min' ? 60 : 1);
+    const im = line.match(/(?:sklon|incl\w*)\s*[:=]?\s*(-?\d+(?:\.\d+)?)/i);
+    blocks.push({ name: m[1].trim() || 'Blok '+(blocks.length+1), dur, speed: parseFloat(m[4]), incline: im ? parseFloat(im[1]) : defIncl });
+  });
+  return {blocks, errors};
+}
+
+/* ---------- pás (FTMS) ---------- */
+class BeltBase{
+  requestControl(){ return this.cmd(0x00); }
+  start(){ return this.cmd(0x07); }
+  pause(){ return this.cmd(0x08,[2]); }
+  stop(){ return this.cmd(0x08,[1]); }
+  setSpeed(k){ const v=Math.round(k*100); return this.cmd(0x02,[v&255,(v>>8)&255]); }
+  setIncline(p){ const v=Math.round(p*10)&0xFFFF; return this.cmd(0x03,[v&255,(v>>8)&255]); }
+}
+function parseTreadmill(dv){
+  const r={}; let o=0;
+  try{
+    const f=dv.getUint16(o,true); o+=2;
+    if(!(f&1)){ r.speed=dv.getUint16(o,true)/100; o+=2; }
+    if(f&2) o+=2;
+    if(f&4){ r.distance=dv.getUint8(o)|(dv.getUint8(o+1)<<8)|(dv.getUint8(o+2)<<16); o+=3; }
+    if(f&8){ r.incline=dv.getInt16(o,true)/10; o+=4; }
+    if(f&16) o+=4;
+    if(f&32) o+=1;
+    if(f&64) o+=1;
+    if(f&128) o+=5;
+    if(f&256){ r.hr=dv.getUint8(o); o+=1; }
+  }catch(e){}
+  return r;
+}
+class FTMSBelt extends BeltBase{
+  constructor(){ super(); this.limits={minSpeed:1,maxSpeed:20,minIncl:0,maxIncl:0}; this.q=Promise.resolve(); this.waiters={}; }
+  async connect(){
+    this.dev = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:[0x1826,0xFFF0]});
+    this.name = this.dev.name || 'Pás';
+    this.dev.addEventListener('gattserverdisconnected',()=>{ this.ondisc && this.ondisc(); });
+    const srv = await this.dev.gatt.connect();
+    this.svc = await srv.getPrimaryService(0x1826);
+    try{ const v=await (await this.svc.getCharacteristic(0x2AD4)).readValue();
+      this.limits.minSpeed=v.getUint16(0,true)/100; this.limits.maxSpeed=v.getUint16(2,true)/100; log('Rozsah rýchlosti: '+this.limits.minSpeed+'–'+this.limits.maxSpeed+' km/h'); }catch(e){ log('Rozsah rýchlosti sa nepodarilo prečítať'); }
+    try{ const v=await (await this.svc.getCharacteristic(0x2AD5)).readValue();
+      this.limits.minIncl=v.getInt16(0,true)/10; this.limits.maxIncl=v.getInt16(2,true)/10; log('Rozsah sklonu: '+this.limits.minIncl+'–'+this.limits.maxIncl+' %'); }catch(e){ log('Rozsah sklonu sa nepodarilo prečítať'); }
+    const td = await this.svc.getCharacteristic(0x2ACD);
+    td.addEventListener('characteristicvaluechanged', e => this.ondata && this.ondata(parseTreadmill(e.target.value)));
+    await td.startNotifications();
+    this.cp = await this.svc.getCharacteristic(0x2AD9);
+    this.cp.addEventListener('characteristicvaluechanged', e => this.onCP(e.target.value));
+    await this.cp.startNotifications();
+    log('Pripojené: '+this.name);
+  }
+  onCP(dv){
+    if(dv.getUint8(0)!==0x80) return;
+    const op=dv.getUint8(1), rc=dv.getUint8(2);
+    log('Odpoveď pásu: príkaz 0x'+op.toString(16)+' → '+(rc===1?'OK':'kód '+rc));
+    const w=this.waiters[op]; if(w){ delete this.waiters[op]; w(rc); }
+  }
+  cmd(op, params=[]){
+    const run = () => new Promise(res=>{
+      const t=setTimeout(()=>{ delete this.waiters[op]; res(null); }, 2500);
+      this.waiters[op]=r=>{ clearTimeout(t); res(r); };
+      const buf=new Uint8Array([op,...params]);
+      const w=this.cp.writeValueWithResponse ? this.cp.writeValueWithResponse(buf) : this.cp.writeValue(buf);
+      w.catch(e=>{ clearTimeout(t); delete this.waiters[op]; log('Chyba zápisu: '+e.message); res(null); });
+    });
+    const p=this.q.then(run); this.q=p.catch(()=>{}); return p;
+  }
+  emergency(){
+    try{ const buf=new Uint8Array([0x08,1]); (this.cp.writeValueWithResponse?this.cp.writeValueWithResponse(buf):this.cp.writeValue(buf)).catch(()=>{}); }catch(e){}
+  }
+  disconnect(){ try{ this.dev.gatt.disconnect(); }catch(e){} }
+}
+class SimBelt extends BeltBase{
+  constructor(){ super(); this.limits={minSpeed:1,maxSpeed:20,minIncl:0,maxIncl:10}; this.name='Demo pás'; this.sp=0; this.tg=0; this.run=false; this.incl=0; this.dist=0; }
+  async connect(){
+    this.t=setInterval(()=>{
+      if(this.run){ this.sp += clamp(this.tg-this.sp,-0.3,0.3); this.dist += this.sp/3.6*0.5; }
+      else this.sp=Math.max(0,this.sp-0.5);
+      this.ondata && this.ondata({speed:this.sp, incline:this.incl, distance:this.dist, hr:null});
+    },500);
+  }
+  async cmd(op,p=[]){
+    log('DEMO príkaz 0x'+op.toString(16)+' '+JSON.stringify(p));
+    if(op===7){ this.run=true; this.tg=Math.max(this.tg,1); }
+    if(op===8){ this.run=false; this.tg=0; }
+    if(op===2){ this.tg=(p[0]|(p[1]<<8))/100; }
+    if(op===3){ let v=p[0]|(p[1]<<8); if(v>32767) v-=65536; this.incl=v/10; }
+    return 1;
+  }
+  emergency(){ this.run=false; this.tg=0; }
+  disconnect(){ clearInterval(this.t); this.ondisc && this.ondisc(); }
+}
+
+/* ---------- zvuk ---------- */
+let actx=null;
+function ensureAudio(){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
+function beep(freq=880, ms=140){
+  try{ if(actx){ const o=actx.createOscillator(), g=actx.createGain(); o.frequency.value=freq; o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(.25,actx.currentTime); g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+ms/1000); o.start(); o.stop(actx.currentTime+ms/1000); } }catch(e){}
+  try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){}
+}
+
+/* ---------- stav tréningu ---------- */
+let override=null;
+let belt=null, blocks=[], phase='idle';   // idle | countdown | starting | running | paused | finishing
+let idx=0, blockEl=0, totalEl=0, cdLeft=0, lastTs=0, offset=0, commanded=0, lastSend=0, lastSent=-1, lastBeepSec=-1;
+let live={speed:null,incline:null,distance:0,hr:null}, timer=null, wake=null;
+const S = () => store.settings;
+const targetSpeed = () => blocks[idx] ? clamp((override!=null ? override : blocks[idx].speed) + offset, belt.limits.minSpeed, Math.min(belt.limits.maxSpeed, S().cap)) : 0;
+const targetIncline = () => clamp(blocks[idx].incline, belt.limits.minIncl, belt.limits.maxIncl);
+
+function selectWorkout(name){
+  const text = allWorkouts()[name]; if(!text) return;
+  const r = parsePlan(text, S().incl);
+  blocks = r.blocks; store.selected = name; persist();
+}
+
+/* ---------- vykresľovanie ---------- */
+function setAlert(msg){ const a=$('alert'); if(msg){ a.innerHTML=msg; a.hidden=false; } else a.hidden=true; }
+function render(){
+  const connected=!!belt, idle=phase==='idle', active=!idle;
+  $('conn').textContent = connected ? belt.name : 'Nepripojený';
+  $('conn').className = 'pill' + (connected?' on':'');
+  $('stopbar').className = active && connected ? 'show' : '';
+
+  const tot = blocks.reduce((a,b)=>a+b.dur,0);
+  $('hWk').textContent = store.selected || 'Žiadny';
+  $('hWkInfo').textContent = blocks.length ? blocks.length+' blokov · '+fmt(tot) : 'Vyber ho v časti Tréningy';
+  $('bChange').disabled = active;
+  $('cdBox').hidden = phase!=='countdown';
+  if(connected) $('support').hidden = true;
+
+  /* hlavné tlačidlo */
+  const b=$('bMain'); b.disabled=false; b.className='primary wide';
+  if(!connected){ b.textContent='Pripojiť pás'; }
+  else if(idle){ b.textContent='▶ Štart tréningu'; b.disabled=!blocks.length; }
+  else if(phase==='running'){ b.textContent='⏸ Pauza'; b.className='wide'; }
+  else if(phase==='paused'){ b.textContent='▶ Pokračovať'; }
+  else { b.textContent='…'; b.disabled=true; }
+  $('tempo').className = 'row' + (phase==='running' ? ' show' : '');
+  const manualOk = connected && (phase==='running' || (idle && (live.speed||0)>0.3));
+  document.querySelectorAll('#quick button').forEach(btn=>{
+    const v=S().q[+btn.dataset.q];
+    btn.textContent = v.toFixed(1).replace('.',',')+' km/h';
+    btn.disabled = !manualOk;
+    btn.classList.toggle('on', phase==='running' && override!=null && Math.abs(override-v)<0.05);
+  });
+
+  $('vSpeed').textContent = live.speed==null ? '–' : live.speed.toFixed(1);
+  $('vIncl').textContent  = live.incline==null ? '–' : live.incline.toFixed(1);
+  $('vHr').textContent    = live.hr ? live.hr : '–';
+  $('vDist').textContent  = ((live.distance||0)/1000).toFixed(2);
+  $('vTotal').textContent = fmt(totalEl);
+
+  const run = (phase==='running'||phase==='paused'||phase==='finishing') && blocks[idx];
+  $('vTarget').textContent = run ? targetSpeed().toFixed(1) : '–';
+  $('vBlockT').textContent = run ? fmt(blocks[idx].dur - blockEl) : '–';
+  if(run){
+    $('nowName').textContent = blocks[idx].name + (phase==='paused' ? ' (pauza)' : '');
+    const nx = blocks[idx+1];
+    $('nowNext').textContent = (override!=null ? 'Ručne '+targetSpeed().toFixed(1)+' km/h do konca bloku · ' : '') + (nx ? 'Ďalej: '+nx.name+' · '+fmt(nx.dur)+' · '+nx.speed.toFixed(1)+' km/h' : 'Posledný blok');
+    $('bar').style.width = clamp(totalEl/tot*100,0,100)+'%';
+  } else if(idle){
+    $('nowName').textContent = !connected ? 'Najprv pripoj pás' : (blocks.length ? 'Pripravené na štart' : 'Vyber tréning');
+    $('nowNext').textContent = '';
+    $('bar').style.width='0';
+  }
+  renderList();
+}
+function renderList(){
+  const el=$('wlist'); let h='';
+  Object.entries(allWorkouts()).forEach(([name,text])=>{
+    const r=parsePlan(text,S().incl), t=r.blocks.reduce((a,b)=>a+b.dur,0), mx=r.blocks.reduce((a,b)=>Math.max(a,b.speed),0);
+    const mine = name in store.workouts, sel = store.selected===name;
+    h += '<div class="card wcard'+(sel?' sel':'')+'"><div><b>'+esc(name)+'</b><span class="muted">'+fmt(t)+' · '+r.blocks.length+' blokov · max '+mx.toFixed(1)+' km/h</span></div>'
+      + '<div style="display:flex;gap:6px">'+(mine?'<button class="ghost" data-del="'+esc(name)+'" aria-label="Zmazať">🗑</button>':'')
+      + '<button class="'+(sel?'':'primary')+'" data-sel="'+esc(name)+'"'+(phase!=='idle'?' disabled':'')+'>'+(sel?'Vybraný':'Vybrať')+'</button></div></div>';
+  });
+  el.innerHTML=h;
+}
+
+/* ---------- navigácia ---------- */
+const TITLES={home:'Domov',work:'Tréningy',set:'Nastavenia'};
+function go(p){
+  ['home','work','set'].forEach(k=>{ $('p-'+k).hidden = k!==p; });
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  $('title').textContent=TITLES[p]; window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+$('bChange').onclick=()=>go('work');
+$('wlist').onclick=e=>{
+  const s=e.target.closest('[data-sel]'), d=e.target.closest('[data-del]');
+  if(s){ selectWorkout(s.dataset.sel); render(); go('home'); }
+  if(d && confirm('Zmazať „'+d.dataset.del+'"?')){ delete store.workouts[d.dataset.del]; if(store.selected===d.dataset.del){ store.selected=null; blocks=[]; } persist(); render(); }
+};
+
+/* ---------- beh tréningu ---------- */
+async function begin(){
+  try{
+    await belt.requestControl(); await belt.start();
+    idx=0; blockEl=0; totalEl=0; offset=0; override=null; lastBeepSec=-1;
+    if(belt.limits.maxIncl>0) await belt.setIncline(targetIncline());
+    commanded=Math.max(belt.limits.minSpeed, live.speed||0); lastSent=-1; lastSend=0;
+    lastTs=performance.now(); phase='running'; beep(1200,300); log('Tréning spustený');
+  }catch(e){ log('Štart zlyhal: '+e.message); phase='idle'; }
+  render();
+}
+function startWorkout(){
+  ensureAudio();
+  const lim=Math.min(S().cap,belt.limits.maxSpeed), over=blocks.filter(b=>b.speed>lim);
+  if(over.length && !confirm(over.length+' blokov má rýchlosť nad limitom ('+lim+' km/h) a budú obmedzené. Pokračovať?')) return;
+  setAlert(''); phase='countdown'; cdLeft=Math.max(3,S().cd); lastTs=performance.now();
+  try{ navigator.wakeLock && navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{}); }catch(e){}
+  if(!timer) timer=setInterval(loop,250);
+  render();
+}
+function nextBlock(){
+  idx++; blockEl=0; lastBeepSec=-1; override=null;
+  if(idx>=blocks.length){ finish(); return; }
+  beep(1000,200);
+  if(belt.limits.maxIncl>0) belt.setIncline(targetIncline());
+  log('Blok '+(idx+1)+': '+blocks[idx].name);
+}
+function finish(){
+  phase='finishing'; beep(700,500); log('Tréning dokončený — spomaľujem a zastavujem');
+  idx=blocks.length-1; blockEl=blocks[idx].dur;
+  commanded=Math.max(live.speed||0,belt.limits.minSpeed);
+  belt.setSpeed(Math.max(belt.limits.minSpeed,Math.min(4,commanded)));
+  setTimeout(async()=>{ if(!belt) return; await belt.stop(); phase='idle'; cleanupTimer(); render(); },6000);
+}
+function cleanupTimer(){ if(phase==='idle'||!belt){ clearInterval(timer); timer=null; try{wake&&wake.release();}catch(e){} wake=null; } }
+function loop(){
+  const now=performance.now(), dt=(now-lastTs)/1000; lastTs=now;
+  if(phase==='countdown'){
+    const prev=Math.ceil(cdLeft); cdLeft-=dt; const cur=Math.ceil(cdLeft);
+    if(cur!==prev && cur>0) beep(660,120);
+    $('cdNum').textContent=Math.max(0,cur);
+    if(cdLeft<=0){ phase='starting'; begin(); }
+  }
+  if(phase==='running'){
+    blockEl+=dt; totalEl+=dt;
+    const rem=Math.ceil(blocks[idx].dur-blockEl);
+    if(rem<=3 && rem>0 && rem!==lastBeepSec){ lastBeepSec=rem; beep(800,90); }
+    if(blockEl>=blocks[idx].dur) nextBlock();
+    if(phase==='running') rampStep(dt,now);
+  }
+  render();
+}
+function rampStep(dt,now){
+  const tg=targetSpeed(), r=S().ramp;
+  if(r<=0) commanded=tg;
+  else { const step=r*dt, d=tg-commanded; commanded = Math.abs(d)<=step ? tg : commanded+Math.sign(d)*step; }
+  const out=Math.round(commanded*10)/10;
+  if(out!==lastSent && (now-lastSend>=500 || out===Math.round(tg*10)/10)){ lastSent=out; lastSend=now; belt.setSpeed(out); }
+}
+async function togglePause(){
+  if(phase==='running'){ phase='paused'; await belt.pause(); log('Pauza'); }
+  else if(phase==='paused'){ await belt.start(); commanded=Math.max(belt.limits.minSpeed,live.speed||0); lastSent=-1; lastTs=performance.now(); phase='running'; log('Pokračovanie'); }
+  render();
+}
+function emergencyStop(){
+  if(!belt) return;
+  belt.emergency(); const was=phase; phase='idle'; offset=0; override=null; log('STOP — núdzové zastavenie');
+  cleanupTimer(); render();
+  if(was!=='idle') setAlert('<b>Pás bol zastavený.</b> Skontroluj, že pás stojí.');
+}
+
+/* ---------- pripojenie ---------- */
+function attach(b){
+  belt=b; setAlert('');
+  b.ondata=d=>{ Object.assign(live, d); render(); };
+  b.ondisc=()=>{
+    const was=phase; belt=null; phase='idle'; cleanupTimer(); log('Spojenie s pásom prerušené');
+    if(was!=='idle') setAlert('<b>Spojenie s pásom sa prerušilo počas tréningu.</b> Pás môže bežať ďalej — zastav ho tlačidlom na páse.');
+    render();
+  };
+}
+async function connectReal(){
+  ensureAudio();
+  try{ const b=new FTMSBelt(); await b.connect(); attach(b); }
+  catch(e){ const m=(e&&(e.name||'')+(e.message?': '+e.message:''))||String(e); log('Pripojenie zlyhalo: '+m); if(!e||e.name!=='NotFoundError') setAlert('Pripojenie zlyhalo – '+esc(m)); }
+  render();
+}
+$('bMain').onclick=()=>{
+  if(!belt) connectReal();
+  else if(phase==='idle') startWorkout();
+  else togglePause();
+};
+$('bDemo').onclick=async()=>{ if(belt) return; ensureAudio(); const b=new SimBelt(); await b.connect(); attach(b); log('Demo režim'); render(); go('home'); };
+$('bDisc').onclick=()=>{ if(!belt) return; if(phase!=='idle' && !confirm('Prebieha tréning. Naozaj odpojiť?')) return; belt.disconnect(); };
+$('bStop').onclick=emergencyStop;
+async function quickSpeed(i){
+  if(!belt) return;
+  const v=S().q[i], lim=Math.min(belt.limits.maxSpeed,S().cap), sp=Math.round(clamp(v,belt.limits.minSpeed,lim)*10)/10;
+  if(phase==='running'){
+    override=v; offset=0; commanded=sp; lastSent=sp; lastSend=performance.now();
+    belt.setSpeed(sp); beep(900,80); log('Rýchle tlačidlo: '+sp+' km/h');
+  } else if(phase==='idle' && (live.speed||0)>0.3){
+    await belt.requestControl(); await belt.setSpeed(sp); beep(900,80); log('Ručne: '+sp+' km/h');
+  }
+  render();
+}
+document.querySelectorAll('#quick button').forEach(b=>b.onclick=()=>quickSpeed(+b.dataset.q));
+$('bMinus').onclick=()=>{ offset=Math.round((offset-0.5)*10)/10; };
+$('bPlus').onclick =()=>{ offset=Math.round((offset+0.5)*10)/10; };
+
+/* ---------- vlastný tréning ---------- */
+$('bNew').onclick=()=>{
+  const n=$('nName').value.trim(), t=$('nPlan').value, r=parsePlan(t,S().incl);
+  if(!n){ $('nErr').textContent='Zadaj názov.'; return; }
+  if(allWorkouts()[n] && !(n in store.workouts)){ $('nErr').textContent='Tento názov používa predvolený tréning.'; return; }
+  if(r.errors.length){ $('nErr').innerHTML=r.errors.map(esc).join('<br>'); return; }
+  if(!r.blocks.length){ $('nErr').textContent='Plán je prázdny.'; return; }
+  store.workouts[n]=t; persist(); $('nErr').textContent=''; $('nName').value=''; $('nPlan').value='';
+  document.querySelector('details.card').open=false; render();
+};
+
+/* ---------- nastavenia ---------- */
+[['sCap','cap'],['sRamp','ramp'],['sCd','cd'],['sIncl','incl']].forEach(([id,k])=>{
+  const el=$(id); el.value=S()[k];
+  el.onchange=()=>{ const v=parseFloat(el.value); if(!isNaN(v)){ S()[k]=v; persist(); } };
+});
+
+[0,1,2].forEach(i=>{
+  const el=$('q'+i); el.value=S().q[i];
+  el.onchange=()=>{ const v=parseFloat(el.value); if(!isNaN(v)&&v>=0){ S().q[i]=Math.round(v*10)/10; persist(); render(); } el.value=S().q[i]; };
+});
+
+/* ---------- štart ---------- */
+if(!('bluetooth' in navigator)){
+  const s=$('support'); s.hidden=false;
+  s.innerHTML='<b>Tento prehliadač nepodporuje Bluetooth.</b> Na iPhone si nainštaluj prehliadač <b>Bluefy</b> a otvor v ňom túto stránku. Na Androide použi Chrome. Demo nájdeš v Nastaveniach.';
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && phase!=='idle'){ try{ navigator.wakeLock && navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{}); }catch(e){} }
+});
+window.addEventListener('beforeunload',e=>{ if(phase!=='idle'){ e.preventDefault(); e.returnValue=''; } });
+if(store.selected && allWorkouts()[store.selected]) selectWorkout(store.selected); else selectWorkout('Garmin Strides (8× 40 s)');
+render();
+</script>
+</body>
+</html>
